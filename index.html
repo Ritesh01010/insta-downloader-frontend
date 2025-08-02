@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Video Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-10">
+            <div class="text-center">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
+                    Instagram Video Downloader
+                </h1>
+                <p class="mt-3 text-gray-600 dark:text-gray-300">
+                    Paste the link to an Instagram video, reel, or IGTV below to download it.
+                </p>
+            </div>
+
+            <!-- Input Form -->
+            <div class="mt-8">
+                <div class="relative">
+                    <input 
+                        type="url" 
+                        id="instagramUrl"
+                        placeholder="https://www.instagram.com/p/C..." 
+                        class="w-full h-14 pl-5 pr-32 rounded-xl text-lg bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-shadow"
+                    >
+                    <button id="downloadBtn" class="absolute top-1/2 right-2 transform -translate-y-1/2 h-11 px-6 rounded-lg bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500">
+                        Download
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loader" class="mt-8 text-center hidden">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-pink-500"></div>
+                <p class="mt-3 text-gray-600 dark:text-gray-400">Fetching video, please wait...</p>
+            </div>
+
+            <!-- Result/Download Link Area -->
+            <div id="result" class="mt-8 text-center hidden">
+                <p class="text-lg font-medium text-green-600 dark:text-green-400 mb-4">Video found!</p>
+                <img id="videoThumbnail" src="" alt="Video Thumbnail" class="mx-auto rounded-lg shadow-md max-h-64 mb-4" onerror="this.style.display='none'">
+                <a id="downloadLink" href="#" download="instagram_video.mp4" class="inline-block w-full md:w-auto px-8 py-4 rounded-xl bg-green-500 text-white font-bold text-lg hover:bg-green-600 transition-colors">
+                    Download Video
+                </a>
+            </div>
+
+            <!-- Error Message -->
+            <div id="error" class="mt-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/50 rounded-lg text-center hidden">
+                <p id="errorMessage"></p>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="mt-10 text-center text-xs text-gray-500 dark:text-gray-400">
+                <p>Please respect the intellectual property rights of others. Do not download content you do not have permission to use. This tool is for personal use only.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This URL now points to YOUR live backend server on Render.
+        const BACKEND_URL = 'https://my-insta-backend-thh3.onrender.com';
+
+        const urlInput = document.getElementById('instagramUrl');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loader = document.getElementById('loader');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        const downloadLink = document.getElementById('downloadLink');
+        const videoThumbnail = document.getElementById('videoThumbnail');
+
+        downloadBtn.addEventListener('click', () => {
+            const url = urlInput.value.trim();
+
+            errorDiv.classList.add('hidden');
+            resultDiv.classList.add('hidden');
+
+            if (!url) {
+                showError('Please enter an Instagram URL.');
+                return;
+            }
+            
+            loader.classList.remove('hidden');
+            downloadBtn.disabled = true;
+            downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Construct the full API URL to call your backend
+            const apiUrl = `${BACKEND_URL}/api/download?url=${encodeURIComponent(url)}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        // If response is not 2xx, parse the error JSON from the backend
+                        return response.json().then(err => { throw new Error(err.error || 'Server error') });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        videoThumbnail.src = data.thumbnail_url;
+                        downloadLink.href = data.video_url;
+                        resultDiv.classList.remove('hidden');
+                    } else {
+                        showError(data.error || 'Could not fetch the video.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch Error:', err);
+                    showError(err.message || 'An error occurred. Please check the URL and try again.');
+                })
+                .finally(() => {
+                    loader.classList.add('hidden');
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
